@@ -1,5 +1,15 @@
+export type MediaType = 'movie' | 'tv';
+
+export type CastMember = {
+  id: number;
+  name: string;
+  character?: string;
+  profile?: string;
+};
+
 export type Movie = {
   id: number;
+  mediaType: MediaType;
   title: string;
   thaiTitle?: string;
   year: string;
@@ -8,5 +18,14 @@ export type Movie = {
   overview: string;
   poster: string;
   backdrop: string;
+  trailerKey?: string;
   trailerUrl?: string;
+  runtime?: string;
+  cast?: CastMember[];
+};
+
+export type MovieRowData = {
+  title: string;
+  subtitle: string;
+  movies: Movie[];
 };
