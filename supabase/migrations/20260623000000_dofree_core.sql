@@ -64,28 +64,36 @@ alter table public.watch_history enable row level security;
 alter table public.memberships enable row level security;
 alter table public.notifications enable row level security;
 
-create policy if not exists "Profiles are readable by owner" on public.profiles
+drop policy if exists "Profiles are readable by owner" on public.profiles;
+create policy "Profiles are readable by owner" on public.profiles
   for select using (auth.uid() = id);
 
-create policy if not exists "Users can update their profile" on public.profiles
+drop policy if exists "Users can update their profile" on public.profiles;
+create policy "Users can update their profile" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
-create policy if not exists "Users can insert their profile" on public.profiles
+drop policy if exists "Users can insert their profile" on public.profiles;
+create policy "Users can insert their profile" on public.profiles
   for insert with check (auth.uid() = id);
 
-create policy if not exists "Users manage their favorites" on public.favorites
+drop policy if exists "Users manage their favorites" on public.favorites;
+create policy "Users manage their favorites" on public.favorites
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy if not exists "Users manage their watch history" on public.watch_history
+drop policy if exists "Users manage their watch history" on public.watch_history;
+create policy "Users manage their watch history" on public.watch_history
   for all using (auth.uid() = user_id or user_id is null) with check (auth.uid() = user_id or user_id is null);
 
-create policy if not exists "Users read their memberships" on public.memberships
+drop policy if exists "Users read their memberships" on public.memberships;
+create policy "Users read their memberships" on public.memberships
   for select using (auth.uid() = user_id);
 
-create policy if not exists "Users create pending membership" on public.memberships
+drop policy if exists "Users create pending membership" on public.memberships;
+create policy "Users create pending membership" on public.memberships
   for insert with check (auth.uid() = user_id);
 
-create policy if not exists "Users read their notifications" on public.notifications
+drop policy if exists "Users read their notifications" on public.notifications;
+create policy "Users read their notifications" on public.notifications
   for select using (auth.uid() = user_id or user_id is null);
 
 create index if not exists favorites_user_id_idx on public.favorites(user_id);
