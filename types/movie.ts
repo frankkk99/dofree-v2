@@ -15,7 +15,9 @@ export type Movie = {
   year: string;
   rating: string;
   genres: string[];
+  thaiGenres?: string[];
   overview: string;
+  thaiOverview?: string;
   poster: string;
   backdrop: string;
   trailerKey?: string;
