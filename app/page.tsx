@@ -1,5 +1,5 @@
-import { ExperienceShellBilingualV2 } from '@/components/ExperienceShellBilingualV2';
+import { ExperienceShellBilingualV3 } from '@/components/ExperienceShellBilingualV3';
 
 export default function HomePage() {
-  return <ExperienceShellBilingualV2 />;
+  return <ExperienceShellBilingualV3 />;
 }
