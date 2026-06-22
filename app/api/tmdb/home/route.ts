@@ -1,0 +1,194 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+const imageBase = 'https://image.tmdb.org/t/p';
+
+const rowDefinitions = [
+  { title: 'กำลังจะเข้าฉาย', subtitle: 'Upcoming / เร็ว ๆ นี้', path: '/movie/upcoming', mediaType: 'movie', pages: 3 },
+  { title: 'ยอดนิยมตอนนี้', subtitle: 'Popular / ยอดนิยม', path: '/movie/popular', mediaType: 'movie', pages: 3 },
+  { title: 'กำลังมาแรง', subtitle: 'Trending / กำลังมาแรง', path: '/trending/movie/week', mediaType: 'movie', pages: 3 },
+  { title: 'คะแนนสูง', subtitle: 'Top Rated / คะแนนสูง', path: '/movie/top_rated', mediaType: 'movie', pages: 3 },
+  { title: 'แอ็กชัน / ผจญภัย', subtitle: 'Action / Adventure', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '28,12', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ครอบครัว / แอนิเมชัน', subtitle: 'Family / Animation', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '16,10751', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ตลก / Feel Good', subtitle: 'Comedy / Easy watching', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '35', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ระทึกขวัญ / สยองขวัญ', subtitle: 'Thriller / Horror', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '27,53', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ไซไฟ / แฟนตาซี', subtitle: 'Sci-Fi / Fantasy', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '878,14', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'โรแมนติก / ดราม่า', subtitle: 'Romance / Drama', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '10749,18', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'อาชญากรรม / ลึกลับ', subtitle: 'Crime / Mystery', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '80,9648', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'สารคดี', subtitle: 'Documentary / สารคดี', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '99', sort_by: 'popularity.desc' }, pages: 2 },
+  { title: 'ซีรีส์กำลังมาแรง', subtitle: 'Trending TV / ซีรีส์มาแรง', path: '/trending/tv/week', mediaType: 'tv', pages: 3 },
+  { title: 'ซีรีส์ยอดนิยม', subtitle: 'Popular TV / ซีรีส์ยอดนิยม', path: '/tv/popular', mediaType: 'tv', pages: 3 },
+  { title: 'ซีรีส์คะแนนสูง', subtitle: 'Top Rated TV / ซีรีส์คะแนนสูง', path: '/tv/top_rated', mediaType: 'tv', pages: 3 },
+];
+
+const readEnv = (...names: string[]) =>
+  names.map((name) => process.env[name]?.trim()).find(Boolean);
+
+const looksLikeReadAccessToken = (value?: string) =>
+  Boolean(value && (value.startsWith('eyJ') || value.split('.').length >= 3));
+
+function getCredential() {
+  const configuredToken = readEnv(
+    'TMDB_ACCESS_TOKEN',
+    'TMDB_READ_ACCESS_TOKEN',
+    'TMDB_BEARER_TOKEN',
+    'NEXT_PUBLIC_TMDB_ACCESS_TOKEN',
+  );
+  const explicitApiKey = readEnv('TMDB_API_KEY', 'NEXT_PUBLIC_TMDB_API_KEY', 'VITE_TMDB_API_KEY');
+  const readAccessToken = looksLikeReadAccessToken(configuredToken) ? configuredToken : undefined;
+  const apiKey = explicitApiKey || (!readAccessToken ? configuredToken : undefined);
+  return { readAccessToken, apiKey };
+}
+
+async function tmdb(path: string, params: Record<string, string | number> = {}) {
+  const { readAccessToken, apiKey } = getCredential();
+
+  if (!readAccessToken && !apiKey) {
+    throw new Error('TMDB credential is not configured');
+  }
+
+  const url = new URL(`${TMDB_BASE_URL}${path}`);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value)));
+  if (apiKey) url.searchParams.set('api_key', apiKey);
+
+  const response = await fetch(url.toString(), {
+    headers: readAccessToken
+      ? { Authorization: `Bearer ${readAccessToken}`, Accept: 'application/json' }
+      : { Accept: 'application/json' },
+    next: { revalidate: 1800 },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.status_message || data?.error || `TMDB request failed with ${response.status}`);
+  }
+
+  return data;
+}
+
+function mediaTypeOf(item: any, fallback: 'movie' | 'tv' = 'movie') {
+  if (item?.media_type === 'tv' || item?.first_air_date || item?.name) return 'tv';
+  if (item?.media_type === 'movie' || item?.release_date || item?.title) return 'movie';
+  return fallback;
+}
+
+function yearOf(item: any) {
+  return (item?.release_date || item?.first_air_date || '').slice(0, 4) || 'N/A';
+}
+
+function ratingOf(item: any) {
+  return typeof item?.vote_average === 'number' ? item.vote_average.toFixed(1) : '0.0';
+}
+
+function image(path?: string | null, size = 'w500') {
+  return path ? `${imageBase}/${size}${path}` : undefined;
+}
+
+function titleOf(item: any) {
+  return item?.title || item?.name || item?.original_title || item?.original_name || 'Untitled';
+}
+
+function mapGenres(item: any, genreMap: Record<number, string>) {
+  const ids = item?.genre_ids || item?.genres?.map((genre: any) => genre.id) || [];
+  return ids.map((id: number) => genreMap[id]).filter(Boolean);
+}
+
+function keyOf(item: any, fallbackType: 'movie' | 'tv') {
+  return `${mediaTypeOf(item, fallbackType)}-${item?.id}`;
+}
+
+function mergeMovie(en: any, th: any, fallbackType: 'movie' | 'tv', enGenres: Record<number, string>, thGenres: Record<number, string>) {
+  const source = en || th;
+  const mediaType = mediaTypeOf(source, fallbackType);
+  const genres = mapGenres(en || th, enGenres);
+  const thaiGenres = mapGenres(th || en, thGenres);
+
+  return {
+    id: source.id,
+    mediaType,
+    title: titleOf(en || source),
+    thaiTitle: titleOf(th || {}) || undefined,
+    year: yearOf(source),
+    rating: ratingOf(source),
+    genres: genres.length ? genres : [mediaType === 'tv' ? 'TV Series' : 'Movie'],
+    thaiGenres: thaiGenres.length ? thaiGenres : undefined,
+    overview: en?.overview || source?.overview || 'No English overview available.',
+    thaiOverview: th?.overview || undefined,
+    poster: image(en?.poster_path || th?.poster_path, 'w500') || image(source?.poster_path, 'w500'),
+    backdrop: image(en?.backdrop_path || th?.backdrop_path, 'original') || image(source?.poster_path, 'original'),
+  };
+}
+
+function uniqueMovies(items: any[]) {
+  return Array.from(new Map(items.filter((item) => item?.id && item?.poster).map((item) => [`${item.mediaType}-${item.id}`, item])).values());
+}
+
+async function getGenreMaps() {
+  const [movieEn, movieTh, tvEn, tvTh] = await Promise.allSettled([
+    tmdb('/genre/movie/list', { language: 'en-US' }),
+    tmdb('/genre/movie/list', { language: 'th-TH' }),
+    tmdb('/genre/tv/list', { language: 'en-US' }),
+    tmdb('/genre/tv/list', { language: 'th-TH' }),
+  ]);
+  const value = (result: PromiseSettledResult<any>) => (result.status === 'fulfilled' ? result.value?.genres || [] : []);
+  const toMap = (items: any[]) => Object.fromEntries(items.map((genre) => [genre.id, genre.name]));
+  const enList = [...value(movieEn), ...value(tvEn)];
+  const thList = [...value(movieTh), ...value(tvTh)];
+  return {
+    en: toMap(enList),
+    th: toMap(thList),
+    options: Array.from(new Set(['All', 'Trending', 'Popular', 'Top Rated', ...enList.map((genre) => genre.name)].filter(Boolean))),
+  };
+}
+
+async function fetchRow(definition: (typeof rowDefinitions)[number], genreMaps: { en: Record<number, string>; th: Record<number, string> }, defaultPages: number) {
+  const pages = Math.min(Number(definition.pages || defaultPages), defaultPages);
+  const pageResults = await Promise.allSettled(
+    Array.from({ length: pages }, async (_, index) => {
+      const page = index + 1;
+      const params = { page, include_adult: 'false', ...(definition.params || {}) };
+      const [en, th] = await Promise.allSettled([
+        tmdb(definition.path, { language: 'en-US', ...params }),
+        tmdb(definition.path, { language: 'th-TH', ...params }),
+      ]);
+      const enItems = en.status === 'fulfilled' ? en.value?.results || [] : [];
+      const thItems = th.status === 'fulfilled' ? th.value?.results || [] : [];
+      const thMap = new Map(thItems.map((item: any) => [keyOf(item, definition.mediaType as 'movie' | 'tv'), item]));
+      return enItems
+        .filter((item: any) => item?.poster_path)
+        .map((item: any) => mergeMovie(item, thMap.get(keyOf(item, definition.mediaType as 'movie' | 'tv')), definition.mediaType as 'movie' | 'tv', genreMaps.en, genreMaps.th));
+    }),
+  );
+
+  const movies = uniqueMovies(pageResults.flatMap((result) => (result.status === 'fulfilled' ? result.value : []))).slice(0, 80);
+  return { title: definition.title, subtitle: definition.subtitle, movies };
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const defaultPages = Math.max(1, Math.min(Number(searchParams.get('pages') || 3), 5));
+
+  try {
+    const credential = getCredential();
+    if (!credential.readAccessToken && !credential.apiKey) {
+      return NextResponse.json({ error: 'TMDB credential is not configured', rows: [] }, { status: 500 });
+    }
+
+    const genreMaps = await getGenreMaps();
+    const rowResults = await Promise.allSettled(rowDefinitions.map((definition) => fetchRow(definition, genreMaps, defaultPages)));
+    const rows = rowResults.flatMap((result) => (result.status === 'fulfilled' && result.value.movies.length ? [result.value] : []));
+    const allMovies = uniqueMovies(rows.flatMap((row) => row.movies));
+
+    return NextResponse.json({
+      ok: true,
+      mode: credential.readAccessToken ? 'read_access_token' : 'api_key',
+      rowCount: rows.length,
+      movieCount: allMovies.length,
+      genreOptions: genreMaps.options,
+      featured: rows[2]?.movies[0] || rows[1]?.movies[0] || allMovies[0] || null,
+      rows,
+    }, { headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=86400' } });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unable to build TMDB home feed', rows: [] }, { status: 500 });
+  }
+}
