@@ -10,24 +10,48 @@ const imageBase = 'https://image.tmdb.org/t/p';
 const fallbackPoster = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=800&auto=format&fit=crop';
 const fallbackBackdrop = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1600&auto=format&fit=crop';
 
-const baseGenres = ['All', 'Trending', 'Popular', 'Top Rated', 'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Family', 'Fantasy', 'History', 'Horror', 'Music', 'Mystery', 'Romance', 'Sci-Fi', 'TV Movie', 'Thriller', 'War', 'Western'];
+const baseGenres = [
+  'All',
+  'Trending',
+  'Popular',
+  'Top Rated',
+  'Action',
+  'Adventure',
+  'Animation',
+  'Comedy',
+  'Crime',
+  'Documentary',
+  'Drama',
+  'Family',
+  'Fantasy',
+  'History',
+  'Horror',
+  'Music',
+  'Mystery',
+  'Romance',
+  'Sci-Fi',
+  'TV Movie',
+  'Thriller',
+  'War',
+  'Western',
+];
 
 const rowDefinitions = [
-  { title: 'กำลังจะเข้าฉาย', subtitle: 'Upcoming theatrical releases', path: '/movie/upcoming', pages: 4 },
-  { title: 'ยอดนิยมตอนนี้', subtitle: 'Popular movies updated from TMDB', path: '/movie/popular', pages: 4 },
-  { title: 'กำลังมาแรง', subtitle: 'Trending this week across TMDB', path: '/trending/movie/week', pages: 4 },
-  { title: 'คะแนนสูง', subtitle: 'Critically loved titles', path: '/movie/top_rated', pages: 4 },
-  { title: 'แอ็กชัน / ผจญภัย', subtitle: 'High-energy stories and big set pieces', path: '/discover/movie', params: { with_genres: '28,12', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'ครอบครัว / แอนิเมชัน', subtitle: 'Animation and family picks', path: '/discover/movie', params: { with_genres: '16,10751', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'ตลก / Feel Good', subtitle: 'Easy watching and comedy titles', path: '/discover/movie', params: { with_genres: '35', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'ระทึกขวัญ / สยองขวัญ', subtitle: 'Dark and suspenseful selections', path: '/discover/movie', params: { with_genres: '27,53', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'ไซไฟ / แฟนตาซี', subtitle: 'World-building, future, and fantasy', path: '/discover/movie', params: { with_genres: '878,14', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'โรแมนติก / ดราม่า', subtitle: 'Relationship and emotional stories', path: '/discover/movie', params: { with_genres: '10749,18', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'อาชญากรรม / ลึกลับ', subtitle: 'Crime, mystery, and investigation', path: '/discover/movie', params: { with_genres: '80,9648', sort_by: 'popularity.desc' }, pages: 4 },
-  { title: 'สารคดี / ประวัติศาสตร์', subtitle: 'Documentary and historical titles', path: '/discover/movie', params: { with_genres: '99,36', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'ซีรีส์กำลังมาแรง', subtitle: 'Trending TV shows this week', path: '/trending/tv/week', pages: 3 },
-  { title: 'ซีรีส์ยอดนิยม', subtitle: 'Popular TV shows', path: '/tv/popular', pages: 3 },
-  { title: 'ซีรีส์คะแนนสูง', subtitle: 'Top rated TV shows', path: '/tv/top_rated', pages: 3 },
+  { title: 'กำลังจะเข้าฉาย', subtitle: 'Upcoming theatrical releases', path: '/movie/upcoming', pages: 5 },
+  { title: 'ยอดนิยมตอนนี้', subtitle: 'Popular movies updated from TMDB', path: '/movie/popular', pages: 5 },
+  { title: 'กำลังมาแรง', subtitle: 'Trending this week across TMDB', path: '/trending/movie/week', pages: 5 },
+  { title: 'คะแนนสูง', subtitle: 'Critically loved titles', path: '/movie/top_rated', pages: 5 },
+  { title: 'แอ็กชัน / ผจญภัย', subtitle: 'High-energy stories and big set pieces', path: '/discover/movie', params: { with_genres: '28,12', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'ครอบครัว / แอนิเมชัน', subtitle: 'Animation and family picks', path: '/discover/movie', params: { with_genres: '16,10751', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'ตลก / Feel Good', subtitle: 'Easy watching and comedy titles', path: '/discover/movie', params: { with_genres: '35', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'ระทึกขวัญ / สยองขวัญ', subtitle: 'Dark and suspenseful selections', path: '/discover/movie', params: { with_genres: '27,53', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'ไซไฟ / แฟนตาซี', subtitle: 'World-building, future, and fantasy', path: '/discover/movie', params: { with_genres: '878,14', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'โรแมนติก / ดราม่า', subtitle: 'Relationship and emotional stories', path: '/discover/movie', params: { with_genres: '10749,18', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'อาชญากรรม / ลึกลับ', subtitle: 'Crime, mystery, and investigation', path: '/discover/movie', params: { with_genres: '80,9648', sort_by: 'popularity.desc' }, pages: 5 },
+  { title: 'สารคดี / ประวัติศาสตร์', subtitle: 'Documentary and historical titles', path: '/discover/movie', params: { with_genres: '99,36', sort_by: 'popularity.desc' }, pages: 4 },
+  { title: 'ซีรีส์กำลังมาแรง', subtitle: 'Trending TV shows this week', path: '/trending/tv/week', pages: 4 },
+  { title: 'ซีรีส์ยอดนิยม', subtitle: 'Popular TV shows', path: '/tv/popular', pages: 4 },
+  { title: 'ซีรีส์คะแนนสูง', subtitle: 'Top rated TV shows', path: '/tv/top_rated', pages: 4 },
 ];
 
 const uniqueMovies = (items: Movie[]) => Array.from(new Map(items.map((movie) => [`${movie.mediaType}-${movie.id}`, movie])).values());
@@ -95,7 +119,7 @@ async function fetchPages(path: string, genreMap: Record<number, string>, params
   );
 
   const results = settled.flatMap((result) => (result.status === 'fulfilled' ? result.value.results || [] : []));
-  return uniqueMovies(results.filter((item) => item?.poster_path).map((item) => toMovie(item, genreMap))).slice(0, 60);
+  return uniqueMovies(results.filter((item) => item?.poster_path).map((item) => toMovie(item, genreMap))).slice(0, 80);
 }
 
 async function fetchVideo(mediaType: MediaType, id: number) {
@@ -119,7 +143,7 @@ async function fetchDetails(movie: Movie) {
   ]);
 
   const trailerKey = await fetchVideo(movie.mediaType, movie.id).catch(() => undefined);
-  const cast: CastMember[] = (credits.cast || []).slice(0, 18).map((person) => ({
+  const cast: CastMember[] = (credits.cast || []).slice(0, 24).map((person) => ({
     id: person.id,
     name: person.name,
     character: person.character,
@@ -216,11 +240,34 @@ function MovieRow({ row, onSelect, onFavorite, favorites, onShowAll }: { row: Mo
   );
 }
 
-function MovieModal({ movie, loading, onClose, onPlay, onFavorite, isFavorite }: { movie: Movie | null; loading: boolean; onClose: () => void; onPlay: (movie: Movie) => void; onFavorite: (movie: Movie) => void; isFavorite: boolean }) {
+function CategoryModal({ row, favorites, onClose, onSelect, onFavorite }: { row: MovieRowData | null; favorites: string[]; onClose: () => void; onSelect: (movie: Movie) => void; onFavorite: (movie: Movie) => void }) {
+  if (!row) return null;
+  return (
+    <div className="fixed inset-0 z-[78] bg-black/88 p-3 backdrop-blur-md md:p-6">
+      <div className="mx-auto flex h-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0d0d0d] shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5 md:p-7">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.32em] text-red-400">Browse all</p>
+            <h2 className="mt-2 text-2xl font-black text-white md:text-4xl">{row.title}</h2>
+            <p className="mt-1 text-sm text-white/45">{row.subtitle} • {row.movies.length} titles</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-red-600">ปิด</button>
+        </div>
+        <div className="no-scrollbar grid flex-1 grid-cols-3 gap-3 overflow-y-auto p-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
+          {row.movies.map((movie) => (
+            <MovieCard key={`category-${row.title}-${movie.mediaType}-${movie.id}`} movie={movie} onSelect={(item) => { onClose(); onSelect(item); }} onFavorite={onFavorite} isFavorite={favorites.includes(storageKey(movie))} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MovieModal({ movie, loading, onClose, onPlay, onFavorite, onGenre, onCastSearch, isFavorite }: { movie: Movie | null; loading: boolean; onClose: () => void; onPlay: (movie: Movie) => void; onFavorite: (movie: Movie) => void; onGenre: (genre: string) => void; onCastSearch: (name: string) => void; isFavorite: boolean }) {
   if (!movie) return null;
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/82 p-0 backdrop-blur-md md:items-center md:p-5">
-      <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-[#101010] shadow-2xl md:max-w-5xl md:rounded-3xl"><button type="button" onClick={onClose} className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur-xl hover:bg-red-600">×</button><div className="relative h-60 overflow-hidden md:h-96"><img src={movie.backdrop} alt={movie.title} className="h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#101010] via-black/40 to-transparent" />{loading ? <div className="absolute bottom-5 left-5 rounded-full bg-black/60 px-4 py-2 text-xs font-bold text-white/70 backdrop-blur-xl">กำลังโหลดข้อมูล...</div> : null}</div><div className="space-y-5 px-5 pb-6 md:px-8 md:pb-8"><div><h2 className="text-3xl font-black text-white md:text-5xl">{movie.title}</h2>{movie.thaiTitle ? <p className="mt-2 text-sm font-semibold text-white/48">ชื่อไทย: {movie.thaiTitle}</p> : null}</div><div className="flex flex-wrap gap-2 text-xs font-bold text-white/65"><span className="rounded-full bg-yellow-400/15 px-3 py-1.5 text-yellow-200">★ {movie.rating}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{movie.year}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{movie.mediaType === 'tv' ? 'TV Series' : 'Movie'}</span>{movie.runtime ? <span className="rounded-full bg-white/10 px-3 py-1.5">{movie.runtime}</span> : null}{movie.genres.map((genre) => <span key={genre} className="rounded-full bg-white/10 px-3 py-1.5">{genre}</span>)}</div><p className="text-sm leading-7 text-white/70 md:text-base">{movie.overview}</p><div className="flex flex-wrap gap-3"><button onClick={() => onPlay(movie)} className="rounded-xl bg-white px-5 py-3 text-sm font-black text-black hover:bg-white/85">▶ ดูตัวอย่าง</button><button onClick={() => onFavorite(movie)} className={`rounded-xl px-5 py-3 text-sm font-black ${isFavorite ? 'bg-red-600 text-white' : 'border border-white/10 bg-white/10 text-white hover:bg-white/20'}`}>♥ {isFavorite ? 'อยู่ในรายการโปรด' : 'เพิ่มรายการโปรด'}</button></div>{movie.cast?.length ? <div><h3 className="mb-3 text-sm font-black text-white/80">นักแสดง</h3><div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">{movie.cast.map((person) => <div key={`${person.id}-${person.character}`} className="overflow-hidden rounded-xl bg-white/5"><div className="aspect-[2/3] bg-white/10">{person.profile ? <img src={person.profile} alt={person.name} className="h-full w-full object-cover" /> : null}</div><div className="p-2"><p className="line-clamp-1 text-[11px] font-bold text-white">{person.name}</p><p className="line-clamp-1 text-[10px] text-white/40">{person.character}</p></div></div>)}</div></div> : null}</div></div>
+      <div className="relative max-h-[94vh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-[#101010] shadow-2xl md:max-w-6xl md:rounded-3xl"><button type="button" onClick={onClose} className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur-xl hover:bg-red-600">×</button><div className="relative h-64 overflow-hidden md:h-[430px]"><img src={movie.backdrop} alt={movie.title} className="h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#101010] via-black/40 to-transparent" />{loading ? <div className="absolute bottom-5 left-5 rounded-full bg-black/60 px-4 py-2 text-xs font-bold text-white/70 backdrop-blur-xl">กำลังโหลดข้อมูล...</div> : null}</div><div className="space-y-5 px-5 pb-6 md:px-8 md:pb-8"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><h2 className="text-3xl font-black text-white md:text-5xl">{movie.title}</h2>{movie.thaiTitle ? <p className="mt-2 text-sm font-semibold text-white/48">ชื่อไทย: {movie.thaiTitle}</p> : null}</div><a href={`/player/${movie.mediaType}/${movie.id}`} className="rounded-xl border border-white/10 bg-white/10 px-5 py-3 text-center text-sm font-black text-white hover:bg-white/20">เปิดหน้า Player</a></div><div className="flex flex-wrap gap-2 text-xs font-bold text-white/65"><span className="rounded-full bg-yellow-400/15 px-3 py-1.5 text-yellow-200">★ {movie.rating}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{movie.year}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{movie.mediaType === 'tv' ? 'TV Series' : 'Movie'}</span>{movie.runtime ? <span className="rounded-full bg-white/10 px-3 py-1.5">{movie.runtime}</span> : null}{movie.genres.map((genre) => <button key={genre} onClick={() => { onGenre(genre); onClose(); }} className="rounded-full bg-white/10 px-3 py-1.5 transition hover:bg-red-600 hover:text-white">{genre}</button>)}</div><p className="text-sm leading-7 text-white/70 md:text-base">{movie.overview}</p><div className="flex flex-wrap gap-3"><button onClick={() => onPlay(movie)} className="rounded-xl bg-white px-5 py-3 text-sm font-black text-black hover:bg-white/85">▶ ดูตัวอย่าง</button><button onClick={() => onFavorite(movie)} className={`rounded-xl px-5 py-3 text-sm font-black ${isFavorite ? 'bg-red-600 text-white' : 'border border-white/10 bg-white/10 text-white hover:bg-white/20'}`}>♥ {isFavorite ? 'อยู่ในรายการโปรด' : 'เพิ่มรายการโปรด'}</button></div>{movie.cast?.length ? <div><h3 className="mb-3 text-sm font-black text-white/80">นักแสดง</h3><div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">{movie.cast.map((person) => <button type="button" onClick={() => { onCastSearch(person.name); onClose(); }} key={`${person.id}-${person.character}`} className="overflow-hidden rounded-xl bg-white/5 text-left transition hover:bg-white/10"><div className="aspect-[2/3] bg-white/10">{person.profile ? <img src={person.profile} alt={person.name} className="h-full w-full object-cover" /> : null}</div><div className="p-2"><p className="line-clamp-1 text-[11px] font-bold text-white">{person.name}</p><p className="line-clamp-1 text-[10px] text-white/40">{person.character}</p></div></button>)}</div></div> : null}</div></div>
     </div>
   );
 }
@@ -265,6 +312,7 @@ export function ExperienceShell() {
   const [allMovies, setAllMovies] = useState<Movie[]>(fallbackMovies);
   const [genreOptions, setGenreOptions] = useState(baseGenres);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [categoryRow, setCategoryRow] = useState<MovieRowData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [playerMovie, setPlayerMovie] = useState<Movie | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -297,7 +345,7 @@ export function ExperienceShell() {
         const nextRows = settledRows
           .filter((result): result is PromiseFulfilledResult<MovieRowData> => result.status === 'fulfilled')
           .map((result) => result.value)
-          .filter((row) => row.movies.length >= 6);
+          .filter((row) => row.movies.length >= 4);
 
         const rowsWithFallback = nextRows.length ? nextRows : fallbackRows;
         const merged = uniqueMovies(rowsWithFallback.flatMap((row) => row.movies));
@@ -325,9 +373,10 @@ export function ExperienceShell() {
         const genreData = await tmdb<{ genres?: { id: number; name: string }[] }>('/genre/movie/list', { language: 'en-US' }).catch(() => ({ genres: [] }));
         const genreMap = Object.fromEntries((genreData.genres || []).map((genre) => [genre.id, genre.name]));
         const data = await tmdb<{ results?: any[] }>('/search/multi', { language: 'en-US', query, include_adult: 'false', page: 1 });
-        const results = uniqueMovies((data.results || []).filter((item) => ['movie', 'tv'].includes(item.media_type) && item.poster_path).map((item) => toMovie(item, genreMap))).slice(0, 40);
+        const results = uniqueMovies((data.results || []).filter((item) => ['movie', 'tv'].includes(item.media_type) && item.poster_path).map((item) => toMovie(item, genreMap))).slice(0, 60);
         if (results.length) {
           setRows((current) => [{ title: `Search: ${query}`, subtitle: 'Live TMDB search results', movies: results }, ...current.filter((row) => !row.title.startsWith('Search:'))]);
+          setCategoryRow({ title: `Search: ${query}`, subtitle: 'Live TMDB search results', movies: results });
           setAllMovies((current) => uniqueMovies([...results, ...current]));
         }
       } catch {}
@@ -386,9 +435,14 @@ export function ExperienceShell() {
     setLoginOpen(false);
   }
 
-  function showAll(row: MovieRowData) {
-    setActiveGenre('All');
-    setRows((current) => [{ ...row, title: `${row.title} ทั้งหมด`, subtitle: 'Expanded row view', movies: row.movies }, ...current.filter((item) => item.title !== `${row.title} ทั้งหมด`)]);
+  function openGenre(genre: string) {
+    setActiveGenre(genre);
+    setCategoryRow({ title: `${genre} ทั้งหมด`, subtitle: 'Filtered category view', movies: uniqueMovies(allMovies.filter((movie) => genre === 'All' || movie.genres.includes(genre))) });
+  }
+
+  function searchCast(name: string) {
+    setQuery(name);
+    setCategoryRow({ title: `Search: ${name}`, subtitle: 'Search by actor name', movies: uniqueMovies(allMovies.filter((movie) => movie.title.includes(name) || movie.overview.includes(name))) });
   }
 
   const selectedKey = selectedMovie ? storageKey(selectedMovie) : '';
@@ -397,9 +451,9 @@ export function ExperienceShell() {
     <main className="min-h-screen overflow-hidden bg-black text-white">
       <Header userName={userName} favoriteCount={favorites.length} onLogin={() => setLoginOpen(true)} onPremium={() => setPremiumOpen(true)} onLogout={() => { localStorage.removeItem('dofree:user'); setUserName(null); }} onNotify={() => setNotifyOpen(true)} />
       <Hero movie={featured} onInfo={openMovie} onPlay={playMovie} />
-      <DiscoveryRail query={query} activeGenre={activeGenre} genreOptions={genreOptions} onQuery={setQuery} onGenre={setActiveGenre} />
+      <DiscoveryRail query={query} activeGenre={activeGenre} genreOptions={genreOptions} onQuery={setQuery} onGenre={openGenre} />
       <div className="relative z-10 -mt-2 pb-20 md:-mt-1">
-        {filteredRows.map((row, index) => <MovieRow key={`${row.title}-${index}`} row={row} onSelect={openMovie} onFavorite={toggleFavorite} favorites={favorites} onShowAll={showAll} />)}
+        {filteredRows.map((row, index) => <MovieRow key={`${row.title}-${index}`} row={row} onSelect={openMovie} onFavorite={toggleFavorite} favorites={favorites} onShowAll={setCategoryRow} />)}
         <section id="portfolio" className="mx-auto max-w-7xl px-4 py-12 md:px-8">
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-2xl md:p-8">
             <p className="text-xs font-black uppercase tracking-[0.3em] text-red-400">Portfolio Build</p>
@@ -408,7 +462,8 @@ export function ExperienceShell() {
           </div>
         </section>
       </div>
-      <MovieModal movie={selectedMovie} loading={detailLoading} onClose={() => setSelectedMovie(null)} onPlay={playMovie} onFavorite={toggleFavorite} isFavorite={favorites.includes(selectedKey)} />
+      <CategoryModal row={categoryRow} favorites={favorites} onClose={() => setCategoryRow(null)} onSelect={openMovie} onFavorite={toggleFavorite} />
+      <MovieModal movie={selectedMovie} loading={detailLoading} onClose={() => setSelectedMovie(null)} onPlay={playMovie} onFavorite={toggleFavorite} onGenre={openGenre} onCastSearch={searchCast} isFavorite={favorites.includes(selectedKey)} />
       <PlayerOverlay movie={playerMovie} onClose={() => setPlayerMovie(null)} />
       <SimpleModal open={loginOpen} title="เข้าสู่ระบบ" onClose={() => setLoginOpen(false)}><p className="text-sm text-white/60">Demo login สำหรับพอร์ต ขั้นต่อไปเชื่อม Supabase Auth ได้ทันที</p><button onClick={fakeLogin} className="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white">เข้าสู่ระบบเป็น Frank</button></SimpleModal>
       <SimpleModal open={premiumOpen} title="สมัครสมาชิก" onClose={() => setPremiumOpen(false)}><p className="text-sm leading-7 text-white/60">Premium modal demo พร้อมต่อ Supabase table สำหรับ membership, slip review และ member status</p><button className="mt-5 w-full rounded-xl bg-amber-300 px-4 py-3 text-sm font-black text-black">เลือกแพ็กเกจ Premium</button></SimpleModal>
