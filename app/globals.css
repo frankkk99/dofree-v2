@@ -12,13 +12,24 @@
 
 html {
   scroll-behavior: smooth;
+  background: #000;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #000;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(220, 38, 38, 0.16), transparent 28rem),
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.08), transparent 24rem),
+    #000;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -28,6 +39,13 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 @keyframes category-loop {
@@ -40,11 +58,31 @@ body {
 }
 
 .animate-category-loop {
-  animation: category-loop 38s linear infinite;
+  animation: category-loop 42s linear infinite;
+}
+
+.category-dock {
+  opacity: 0.76;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.category-dock:hover,
+.category-dock:focus-within,
+.category-dock:active {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.movie-row {
+  scroll-margin-top: 7rem;
 }
 
 @media (max-width: 640px) {
   .animate-category-loop {
-    animation-duration: 28s;
+    animation-duration: 30s;
+  }
+
+  .category-dock {
+    opacity: 0.68;
   }
 }
