@@ -18,8 +18,12 @@ function image(path?: string | null, size = 'original') {
   return path ? `${imageBase}/${size}${path}` : undefined;
 }
 
-function getTitle(item: any) {
-  return item.original_title || item.title || item.original_name || item.name || 'Untitled';
+function englishTitle(item: any) {
+  return item?.title || item?.name || item?.original_title || item?.original_name || 'Untitled';
+}
+
+function thaiTitle(item: any) {
+  return item?.title || item?.name || '';
 }
 
 async function getTrailer(type: MediaType, id: string) {
@@ -70,8 +74,8 @@ export default function PlayerPage({ params }: { params: { type: MediaType; id: 
     return () => { mounted = false; };
   }, [params.id, type]);
 
-  const title = detail ? getTitle(detail) : 'Loading...';
-  const thaiTitle = thaiDetail?.title || thaiDetail?.name;
+  const title = detail ? englishTitle(detail) : 'Loading...';
+  const titleThai = thaiTitle(thaiDetail);
   const backdrop = image(detail?.backdrop_path) || image(detail?.poster_path) || fallbackBackdrop;
   const runtime = detail?.runtime ? `${detail.runtime} นาที` : detail?.episode_run_time?.[0] ? `${detail.episode_run_time[0]} นาที` : undefined;
   const year = (detail?.release_date || detail?.first_air_date || '').slice(0, 4) || 'N/A';
@@ -86,7 +90,7 @@ export default function PlayerPage({ params }: { params: { type: MediaType; id: 
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 md:px-8">
           <div className="mb-6 flex items-center justify-between">
             <a href="/" className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-black text-white backdrop-blur-xl hover:bg-white/20">← กลับหน้าแรก</a>
-            <span className="rounded-full bg-red-600 px-4 py-2 text-xs font-black uppercase tracking-[0.22em]">DOFree Player</span>
+            <span className="rounded-full bg-red-600 px-4 py-2 text-xs font-black uppercase tracking-[0.22em]">TH / EN Player</span>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
@@ -96,15 +100,18 @@ export default function PlayerPage({ params }: { params: { type: MediaType; id: 
               </div>
               <div className="p-5 md:p-7">
                 <h1 className="text-3xl font-black md:text-5xl">{title}</h1>
-                {thaiTitle && thaiTitle !== title ? <p className="mt-2 text-sm font-semibold text-white/45">ชื่อไทย: {thaiTitle}</p> : null}
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-white/65"><span className="rounded-full bg-yellow-400/15 px-3 py-1.5 text-yellow-200">★ {rating}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{year}</span>{runtime ? <span className="rounded-full bg-white/10 px-3 py-1.5">{runtime}</span> : null}{detail?.genres?.map((genre: any) => <span key={genre.id} className="rounded-full bg-white/10 px-3 py-1.5">{genre.name}</span>)}</div>
-                <p className="mt-5 text-sm leading-7 text-white/68 md:text-base">{detail?.overview || (loading ? 'กำลังโหลดข้อมูล...' : 'No overview available.')}</p>
+                {titleThai && titleThai !== title ? <p className="mt-2 text-lg font-bold text-red-100/70">{titleThai}</p> : null}
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-white/65"><span className="rounded-full bg-yellow-400/15 px-3 py-1.5 text-yellow-200">★ {rating}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{year}</span>{runtime ? <span className="rounded-full bg-white/10 px-3 py-1.5">{runtime}</span> : null}{detail?.genres?.map((genre: any) => <span key={genre.id} className="rounded-full bg-white/10 px-3 py-1.5">{genre.name}</span>)}{thaiDetail?.genres?.map((genre: any) => <span key={`th-${genre.id}`} className="rounded-full bg-white/5 px-3 py-1.5 text-white/35">{genre.name}</span>)}</div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl bg-white/[0.04] p-4"><p className="text-xs font-black uppercase tracking-[0.24em] text-white/35">English Overview</p><p className="mt-2 text-sm leading-7 text-white/68 md:text-base">{detail?.overview || (loading ? 'Loading...' : 'No English overview available.')}</p></div>
+                  {thaiDetail?.overview ? <div className="rounded-2xl bg-red-500/[0.06] p-4"><p className="text-xs font-black uppercase tracking-[0.24em] text-red-200/45">เรื่องย่อภาษาไทย</p><p className="mt-2 text-sm leading-7 text-white/68 md:text-base">{thaiDetail.overview}</p></div> : null}
+                </div>
               </div>
             </div>
 
             <aside className="space-y-5">
               <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-2xl">
-                <h2 className="text-lg font-black">นักแสดง</h2>
+                <h2 className="text-lg font-black">นักแสดง / Cast</h2>
                 <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-2">
                   {cast.map((person) => <div key={`${person.id}-${person.character}`} className="overflow-hidden rounded-xl bg-white/5"><div className="aspect-[2/3] bg-white/10">{person.profile_path ? <img src={image(person.profile_path, 'w185')} alt={person.name} className="h-full w-full object-cover" /> : null}</div><div className="p-2"><p className="line-clamp-1 text-[11px] font-bold">{person.name}</p><p className="line-clamp-1 text-[10px] text-white/40">{person.character}</p></div></div>)}
                 </div>
@@ -112,7 +119,7 @@ export default function PlayerPage({ params }: { params: { type: MediaType; id: 
             </aside>
           </div>
 
-          {related.length ? <section className="mt-10"><h2 className="text-2xl font-black">เรื่องที่คล้ายกัน</h2><div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-4">{related.map((item) => <a key={item.id} href={`/player/${type}/${item.id}`} className="w-[120px] shrink-0 md:w-[160px]"><img src={image(item.poster_path, 'w500')} alt={getTitle(item)} className="aspect-[2/3] rounded-2xl object-cover ring-1 ring-white/10" /><p className="mt-2 line-clamp-1 text-xs font-black">{getTitle(item)}</p></a>)}</div></section> : null}
+          {related.length ? <section className="mt-10"><h2 className="text-2xl font-black">เรื่องที่คล้ายกัน / Similar</h2><div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-4">{related.map((item) => <a key={item.id} href={`/player/${type}/${item.id}`} className="w-[120px] shrink-0 md:w-[160px]"><img src={image(item.poster_path, 'w500')} alt={englishTitle(item)} className="aspect-[2/3] rounded-2xl object-cover ring-1 ring-white/10" /><p className="mt-2 line-clamp-1 text-xs font-black">{englishTitle(item)}</p></a>)}</div></section> : null}
         </div>
       </section>
     </main>
