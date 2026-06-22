@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { genres as fallbackGenres } from '@/lib/genres';
 import { featuredMovie as fallbackFeatured, movieRows as fallbackRows, movies as fallbackMovies } from '@/lib/movies';
 import type { CastMember, MediaType, Movie, MovieRowData } from '@/types/movie';
@@ -236,7 +237,7 @@ function PlayerOverlay({ movie, onClose }: { movie: Movie | null; onClose: () =>
   return <div className="fixed inset-0 z-[90] bg-black/95 p-4"><button onClick={onClose} className="absolute right-4 top-4 z-20 rounded-full bg-white/10 px-4 py-2 text-sm font-bold text-white">ปิด</button><div className="mx-auto flex h-full max-w-5xl items-center justify-center"><div className="w-full overflow-hidden rounded-3xl border border-white/10 bg-[#101010]"><div className="aspect-video bg-black">{url ? <iframe src={url} allow="autoplay; encrypted-media" allowFullScreen className="h-full w-full" /> : <div className="flex h-full items-center justify-center p-8 text-center text-white/60">ยังไม่มีตัวอย่างอย่างเป็นทางการ</div>}</div><div className="flex items-center justify-between gap-4 p-4"><div><p className="font-black text-white">{movie.title}</p><p className="text-xs text-white/45">Official trailer preview</p></div>{!canSkip ? <span className="rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white/70">โฆษณาจะข้ามได้ใน {count}</span> : <button onClick={onClose} className="rounded-full bg-red-600 px-4 py-2 text-xs font-black text-white">ข้าม / ปิด</button>}</div></div></div></div>;
 }
 
-function SimpleModal({ open, title, children, onClose }: { open: boolean; title: string; children: React.ReactNode; onClose: () => void }) {
+function SimpleModal({ open, title, children, onClose }: { open: boolean; title: string; children: ReactNode; onClose: () => void }) {
   if (!open) return null;
   return <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#121212] p-6 shadow-2xl"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black text-white">{title}</h2><button onClick={onClose} className="rounded-full bg-white/10 px-3 py-1 text-white">×</button></div>{children}</div></div>;
 }
