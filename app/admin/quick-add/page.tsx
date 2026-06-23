@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 type MediaType = 'movie' | 'tv';
+type Status = 'พร้อมใช้งาน' | 'กำลังโหลด' | 'ต้องเป็น Admin ก่อน' | 'ยังไม่ได้เข้าสู่ระบบ';
 
 type TmdbResult = {
   id: number;
@@ -13,20 +14,17 @@ type TmdbResult = {
   original_title?: string;
   original_name?: string;
   poster_path?: string | null;
-  backdrop_path?: string | null;
   release_date?: string;
   first_air_date?: string;
   vote_average?: number;
   overview?: string;
 };
 
-type Status = 'พร้อมใช้งาน' | 'กำลังโหลด' | 'ต้องเป็น Admin ก่อน' | 'ยังไม่ได้เข้าสู่ระบบ';
-
-const posterUrl = (path?: string | null) => path ? `https://image.tmdb.org/t/p/w342${path}` : '';
+const posterUrl = (path?: string | null) => (path ? `https://image.tmdb.org/t/p/w342${path}` : '');
 const yearOf = (item?: TmdbResult | null) => (item?.release_date || item?.first_air_date || '').slice(0, 4);
 const titleOf = (item?: TmdbResult | null) => item?.title || item?.name || item?.original_title || item?.original_name || '';
 
-function normalizeGoogleDriveUrl(value: string) {
+function normalizeContentUrl(value: string) {
   const trimmed = value.trim();
   const match = trimmed.match(/drive\.google\.com\/file\/d\/([^/]+)/);
   if (match?.[1]) return `https://drive.google.com/file/d/${match[1]}/preview`;
@@ -57,9 +55,9 @@ export default function QuickAddPage() {
   const [mediaType, setMediaType] = useState<MediaType>('movie');
   const [query, setQuery] = useState('');
   const [tmdbId, setTmdbId] = useState('');
-  const [watchUrl, setWatchUrl] = useState('');
+  const [contentUrl, setContentUrl] = useState('');
   const [trailerUrl, setTrailerUrl] = useState('');
-  const [provider, setProvider] = useState('Google Drive');
+  const [provider, setProvider] = useState('External Link');
   const [titleTh, setTitleTh] = useState('');
   const [titleEn, setTitleEn] = useState('');
   const [notes, setNotes] = useState('');
@@ -73,20 +71,22 @@ export default function QuickAddPage() {
       return;
     }
 
+    const client = supabase;
+
     async function init() {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       const user = data.session?.user;
       setSessionEmail(user?.email || null);
       if (!user) {
         setStatus('ยังไม่ได้เข้าสู่ระบบ');
         return;
       }
-      const profile = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      const profile = await client.from('profiles').select('role').eq('id', user.id).single();
       setStatus(profile.data?.role === 'admin' ? 'พร้อมใช้งาน' : 'ต้องเป็น Admin ก่อน');
     }
 
     init();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => init());
+    const { data: listener } = client.auth.onAuthStateChange(() => init());
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
 
@@ -160,21 +160,21 @@ export default function QuickAddPage() {
       setMessage('ต้องมี TMDB ID ก่อน');
       return;
     }
-    if (!watchUrl.trim()) {
-      setMessage('ต้องใส่ลิงก์ Google Drive หรือ watch URL ก่อน');
+    if (!contentUrl.trim()) {
+      setMessage('ต้องใส่ลิงก์คอนเทนต์ก่อน');
       return;
     }
 
     setBusy(true);
-    const normalizedWatchUrl = normalizeGoogleDriveUrl(watchUrl);
+    const normalizedUrl = normalizeContentUrl(contentUrl);
     const payload = {
       tmdb_id: id,
       media_type: mediaType,
       title: titleEn || null,
       title_th: titleTh || null,
-      watch_url: normalizedWatchUrl,
+      watch_url: normalizedUrl,
       trailer_url: trailerUrl || null,
-      provider: provider || 'Google Drive',
+      provider: provider || 'External Link',
       notes: notes || null,
       is_active: active,
       updated_at: new Date().toISOString(),
@@ -186,8 +186,8 @@ export default function QuickAddPage() {
       setMessage(error.message);
       return;
     }
-    setWatchUrl(normalizedWatchUrl);
-    setMessage(active ? 'บันทึกและเผยแพร่แล้ว ถ้าคะแนน 8+ จะขึ้นหมวดดูได้แล้ว' : 'บันทึกแบบร่างแล้ว');
+    setContentUrl(normalizedUrl);
+    setMessage(active ? 'บันทึกและเผยแพร่แล้ว' : 'บันทึกแบบร่างแล้ว');
   };
 
   const canUse = status === 'พร้อมใช้งาน';
@@ -198,8 +198,8 @@ export default function QuickAddPage() {
         <header className="mb-6 flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.04] p-5 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-red-300/70">DOFree Admin</p>
-            <h1 className="mt-2 text-3xl font-black md:text-5xl">เพิ่มหนังแบบเร็ว</h1>
-            <p className="mt-2 text-sm text-white/45">ค้นหา TMDB แล้ววาง Google Drive link เพื่อเผยแพร่ทันที</p>
+            <h1 className="mt-2 text-3xl font-black md:text-5xl">เพิ่มคอนเทนต์แบบเร็ว</h1>
+            <p className="mt-2 text-sm text-white/45">ค้นหา TMDB แล้วบันทึกลิงก์คอนเทนต์เพื่อเผยแพร่</p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-black">
             <Link href="/admin" className="rounded-full bg-white/10 px-4 py-2 text-white/75">กลับ Admin</Link>
@@ -237,7 +237,7 @@ export default function QuickAddPage() {
                     <option value="tv">tv</option>
                   </select>
                 </label>
-                <Field label="ค้นหาชื่อหนัง / ซีรีส์" value={query} onChange={setQuery} placeholder="เช่น Interstellar, ดาบพิฆาตอสูร" />
+                <Field label="ค้นหาชื่อเรื่อง" value={query} onChange={setQuery} placeholder="เช่น Interstellar" />
                 <button disabled={!canUse || busy} onClick={searchTmdb} className="w-full rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">ค้นหาจาก TMDB</button>
                 <div className="flex items-end gap-2">
                   <div className="flex-1"><Field label="หรือใส่ TMDB ID" value={tmdbId} onChange={setTmdbId} type="number" /></div>
@@ -281,7 +281,7 @@ export default function QuickAddPage() {
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <Field label="ชื่อไทย" value={titleTh} onChange={setTitleTh} />
                   <Field label="ชื่ออังกฤษ" value={titleEn} onChange={setTitleEn} />
-                  <Field label="Google Drive / Watch URL" value={watchUrl} onChange={setWatchUrl} placeholder="https://drive.google.com/file/d/.../view" />
+                  <Field label="Content URL" value={contentUrl} onChange={setContentUrl} placeholder="https://..." />
                   <Field label="Trailer URL" value={trailerUrl} onChange={setTrailerUrl} placeholder="ไม่ใส่ก็ได้" />
                   <Field label="Provider" value={provider} onChange={setProvider} />
                   <Field label="หมายเหตุ" value={notes} onChange={setNotes} />
@@ -292,7 +292,7 @@ export default function QuickAddPage() {
                   <button disabled={!canUse || busy} onClick={() => saveLink(false)} className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white disabled:opacity-50">บันทึกแบบร่าง</button>
                 </div>
 
-                <p className="mt-4 text-xs text-white/35">ถ้าเป็นลิงก์ Google Drive แบบ /view ระบบจะแปลงเป็น /preview ให้อัตโนมัติ</p>
+                <p className="mt-4 text-xs text-white/35">ถ้าเป็นลิงก์ไฟล์แบบ /view ระบบจะแปลงเป็น /preview ให้อัตโนมัติ</p>
               </div>
             </section>
           </div>
