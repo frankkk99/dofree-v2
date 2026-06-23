@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { AdminCategory, AdminMovieLink, AdminSection } from '@/types/admin';
@@ -7,7 +8,7 @@ import type { AdminCategory, AdminMovieLink, AdminSection } from '@/types/admin'
 type SettingRow = {
   key: string;
   label: string;
-  value: Record<string, any>;
+  value: Record<string, unknown>;
 };
 
 const tabs = [
@@ -19,14 +20,26 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]['key'];
 
-const emptyLink = {
+type LinkForm = {
+  tmdb_id: string;
+  media_type: 'movie' | 'tv';
+  title: string;
+  title_th: string;
+  watch_url: string;
+  trailer_url: string;
+  provider: string;
+  notes: string;
+  is_active: boolean;
+};
+
+const emptyLink: LinkForm = {
   tmdb_id: '',
   media_type: 'movie',
   title: '',
   title_th: '',
   watch_url: '',
   trailer_url: '',
-  provider: '',
+  provider: 'Google Drive',
   notes: '',
   is_active: true,
 };
@@ -70,16 +83,17 @@ export default function AdminPage() {
   const [sections, setSections] = useState<AdminSection[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [links, setLinks] = useState<AdminMovieLink[]>([]);
-  const [newLink, setNewLink] = useState<any>(emptyLink);
+  const [newLink, setNewLink] = useState<LinkForm>(emptyLink);
 
   const loadData = async () => {
     if (!supabase) return;
     setLoading(true);
+    const client = supabase;
     const [settingsRes, sectionsRes, categoriesRes, linksRes] = await Promise.all([
-      supabase.from('site_settings').select('*').order('key'),
-      supabase.from('admin_sections').select('*').order('sort_order'),
-      supabase.from('admin_categories').select('*').order('sort_order'),
-      supabase.from('admin_movie_links').select('*').order('updated_at', { ascending: false }),
+      client.from('site_settings').select('*').order('key'),
+      client.from('admin_sections').select('*').order('sort_order'),
+      client.from('admin_categories').select('*').order('sort_order'),
+      client.from('admin_movie_links').select('*').order('updated_at', { ascending: false }),
     ]);
     setSettings((settingsRes.data || []) as SettingRow[]);
     setSections((sectionsRes.data || []) as AdminSection[]);
@@ -94,19 +108,23 @@ export default function AdminPage() {
       return;
     }
 
+    const client = supabase;
+
     async function init() {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       const user = data.session?.user;
       setSessionEmail(user?.email || null);
       if (user) {
-        const profile = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const profile = await client.from('profiles').select('role').eq('id', user.id).single();
         setIsAdmin(profile.data?.role === 'admin');
+      } else {
+        setIsAdmin(false);
       }
       await loadData();
     }
 
     init();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => init());
+    const { data: listener } = client.auth.onAuthStateChange(() => init());
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
 
@@ -120,7 +138,8 @@ export default function AdminPage() {
   };
 
   const logout = async () => {
-    await supabase?.auth.signOut();
+    if (!supabase) return;
+    await supabase.auth.signOut();
     setSessionEmail(null);
     setIsAdmin(false);
   };
@@ -201,7 +220,11 @@ export default function AdminPage() {
             <div className="text-right text-sm text-white/55">
               <p>{sessionEmail}</p>
               <p className={isAdmin ? 'font-bold text-green-300' : 'font-bold text-yellow-300'}>{isAdmin ? 'สิทธิ์ผู้ดูแล' : 'ยังไม่มีสิทธิ์แก้ไข'}</p>
-              <button onClick={logout} className="mt-2 rounded-xl bg-white/10 px-4 py-2 text-xs font-black text-white">ออกจากระบบ</button>
+              <div className="mt-2 flex flex-wrap justify-end gap-2">
+                <Link href="/admin/dashboard" className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black text-white">Dashboard</Link>
+                <Link href="/admin/quick-add" className="rounded-xl bg-red-600 px-4 py-2 text-xs font-black text-white">เพิ่มหนังเร็ว</Link>
+                <button onClick={logout} className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black text-white">ออกจากระบบ</button>
+              </div>
             </div>
           ) : null}
         </header>
@@ -241,7 +264,7 @@ export default function AdminPage() {
             </section> : null}
 
             {tab === 'sections' ? <section className="space-y-3">
-              {sections.map((section, index) => <div key={section.key} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:grid-cols-[1fr_120px_80px_auto] md:items-center">
+              {sections.map((section) => <div key={section.key} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:grid-cols-[1fr_120px_80px_auto] md:items-center">
                 <Field label="ชื่อ Section" value={section.title_th} onChange={(value) => setSections((current) => current.map((item) => item.key === section.key ? { ...item, title_th: value } : item))} />
                 <Field label="ลำดับ" type="number" value={section.sort_order} onChange={(value) => setSections((current) => current.map((item) => item.key === section.key ? { ...item, sort_order: Number(value) } : item))} />
                 <div><span className="text-xs font-bold text-white/45">เปิด</span><div className="mt-2"><Toggle checked={section.enabled} onChange={(value) => setSections((current) => current.map((item) => item.key === section.key ? { ...item, enabled: value } : item))} /></div></div>
@@ -265,10 +288,10 @@ export default function AdminPage() {
                 <h3 className="text-lg font-black">เพิ่ม / แก้ลิงก์หนัง</h3>
                 <div className="mt-4 space-y-3">
                   <Field label="TMDB ID" value={newLink.tmdb_id} onChange={(value) => setNewLink({ ...newLink, tmdb_id: value })} type="number" />
-                  <label className="block"><span className="text-xs font-bold text-white/45">ประเภท</span><select value={newLink.media_type} onChange={(event) => setNewLink({ ...newLink, media_type: event.target.value })} className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-2 text-sm text-white"><option value="movie">movie</option><option value="tv">tv</option></select></label>
+                  <label className="block"><span className="text-xs font-bold text-white/45">ประเภท</span><select value={newLink.media_type} onChange={(event) => setNewLink({ ...newLink, media_type: event.target.value as 'movie' | 'tv' })} className="mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-2 text-sm text-white"><option value="movie">movie</option><option value="tv">tv</option></select></label>
                   <Field label="ชื่ออังกฤษ" value={newLink.title} onChange={(value) => setNewLink({ ...newLink, title: value })} />
                   <Field label="ชื่อไทย" value={newLink.title_th} onChange={(value) => setNewLink({ ...newLink, title_th: value })} />
-                  <Field label="ลิงก์หนัง" value={newLink.watch_url} onChange={(value) => setNewLink({ ...newLink, watch_url: value })} placeholder="https://..." />
+                  <Field label="ลิงก์หนัง / Google Drive" value={newLink.watch_url} onChange={(value) => setNewLink({ ...newLink, watch_url: value })} placeholder="https://drive.google.com/file/d/..." />
                   <Field label="ลิงก์ Trailer" value={newLink.trailer_url} onChange={(value) => setNewLink({ ...newLink, trailer_url: value })} placeholder="https://..." />
                   <Field label="แหล่งที่มา / Provider" value={newLink.provider} onChange={(value) => setNewLink({ ...newLink, provider: value })} />
                   <Field label="หมายเหตุ" value={newLink.notes} onChange={(value) => setNewLink({ ...newLink, notes: value })} />
