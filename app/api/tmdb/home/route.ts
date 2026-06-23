@@ -4,6 +4,7 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const imageBase = 'https://image.tmdb.org/t/p';
 
 const rowDefinitions = [
+  { title: 'กำลังฉาย', subtitle: 'Now Playing / หนังที่กำลังฉายในโรง', path: '/movie/now_playing', mediaType: 'movie', pages: 4 },
   { title: 'กำลังจะเข้าฉาย', subtitle: 'Upcoming / เร็ว ๆ นี้', path: '/movie/upcoming', mediaType: 'movie', pages: 3 },
   { title: 'ยอดนิยมตอนนี้', subtitle: 'Popular / ยอดนิยม', path: '/movie/popular', mediaType: 'movie', pages: 3 },
   { title: 'กำลังมาแรง', subtitle: 'Trending / กำลังมาแรง', path: '/trending/movie/week', mediaType: 'movie', pages: 3 },
@@ -185,7 +186,7 @@ export async function GET(request: NextRequest) {
       rowCount: rows.length,
       movieCount: allMovies.length,
       genreOptions: genreMaps.options,
-      featured: rows[2]?.movies[0] || rows[1]?.movies[0] || allMovies[0] || null,
+      featured: rows[3]?.movies[0] || rows[2]?.movies[0] || rows[1]?.movies[0] || allMovies[0] || null,
       rows,
     }, { headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=86400' } });
   } catch (error) {
