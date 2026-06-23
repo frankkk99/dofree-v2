@@ -1,4 +1,5 @@
 import { ExperienceShellAllMoviesRows } from '@/components/ExperienceShellAllMoviesRows';
+import { GoogleDriveWatchEnhancer } from '@/components/GoogleDriveWatchEnhancer';
 import { MouseDragCarouselEnhancer } from '@/components/MouseDragCarouselEnhancer';
 
 export default function HomePage() {
@@ -6,6 +7,7 @@ export default function HomePage() {
     <main>
       <ExperienceShellAllMoviesRows />
       <MouseDragCarouselEnhancer />
+      <GoogleDriveWatchEnhancer />
     </main>
   );
 }
