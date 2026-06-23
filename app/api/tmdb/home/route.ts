@@ -26,9 +26,13 @@ type MovieLink = {
   provider?: string | null;
 };
 
+const WATCH_READY_SLUG = 'watch-ready';
+const WATCH_READY_PATH = '__watch_ready__';
+
 const thaiFallbackGenres = ['ทั้งหมด', 'แอ็กชัน', 'ผจญภัย', 'แอนิเมชัน', 'ตลก', 'อาชญากรรม', 'สารคดี', 'ดราม่า', 'ครอบครัว', 'แฟนตาซี', 'ประวัติศาสตร์', 'สยองขวัญ', 'เพลง', 'ลึกลับ', 'โรแมนติก', 'ไซไฟ', 'ระทึกขวัญ', 'สงคราม', 'ตะวันตก'];
 
 const defaultRowDefinitions: CategoryDefinition[] = [
+  { slug: WATCH_READY_SLUG, title: 'ดูได้แล้ว', subtitle: 'หนังที่มีลิงก์รับชมแล้ว และคะแนน 8.0 ขึ้นไป', path: WATCH_READY_PATH, mediaType: 'movie', pages: 1, sortOrder: 5 },
   { slug: 'now-playing', title: 'กำลังฉาย', subtitle: 'หนังที่กำลังฉายในโรง', path: '/movie/now_playing', mediaType: 'movie', pages: 4, autoplay: true, sortOrder: 10 },
   { slug: 'upcoming', title: 'กำลังจะเข้าฉาย', subtitle: 'หนังใหม่ที่กำลังจะมา', path: '/movie/upcoming', mediaType: 'movie', pages: 3, sortOrder: 20 },
   { slug: 'popular', title: 'ยอดนิยมตอนนี้', subtitle: 'เรื่องที่คนดูสนใจมากที่สุด', path: '/movie/popular', mediaType: 'movie', pages: 3, sortOrder: 30 },
@@ -143,7 +147,10 @@ async function getAdminCategories(): Promise<CategoryDefinition[]> {
   if (!supabase) return defaultRowDefinitions;
   const { data, error } = await supabase.from('admin_categories').select('slug,title_th,subtitle_th,tmdb_path,media_type,tmdb_params,pages,enabled,autoplay,sort_order').eq('enabled', true).order('sort_order', { ascending: true });
   if (error || !data?.length) return defaultRowDefinitions;
-  return data.map((item: any) => ({ slug: item.slug, title: item.title_th, subtitle: item.subtitle_th || '', path: item.tmdb_path, mediaType: item.media_type, params: item.tmdb_params || {}, pages: item.pages || 3, autoplay: item.autoplay, sortOrder: item.sort_order }));
+  const mapped = data.map((item: any) => ({ slug: item.slug, title: item.title_th, subtitle: item.subtitle_th || '', path: item.tmdb_path, mediaType: item.media_type, params: item.tmdb_params || {}, pages: item.pages || 3, autoplay: item.autoplay, sortOrder: item.sort_order }));
+  return mapped.some((item) => item.slug === WATCH_READY_SLUG)
+    ? mapped
+    : [defaultRowDefinitions[0], ...mapped].sort((a, b) => Number(a.sortOrder || 999) - Number(b.sortOrder || 999));
 }
 
 async function getMovieLinks() {
@@ -163,7 +170,34 @@ async function getGenreMaps() {
   return { en: toMap(enList), th: toMap(thList), options: Array.from(new Set(['ทั้งหมด', ...thaiOptions].filter(Boolean))) };
 }
 
+async function fetchWatchReadyRow(definition: CategoryDefinition, genreMaps: { en: Record<number, string>; th: Record<number, string> }, linkMap: Map<string, MovieLink>) {
+  const links = Array.from(linkMap.values()).filter((link) => Boolean(link.watch_url)).slice(0, 80);
+  if (!links.length) return { title: definition.title, subtitle: definition.subtitle, movies: [], slug: definition.slug, autoplay: false, loadedPages: 1, hasMore: false };
+
+  const movieResults = await Promise.allSettled(links.map(async (link) => {
+    const mediaType = link.media_type || 'movie';
+    const [en, th] = await Promise.allSettled([
+      tmdb(`/${mediaType}/${link.tmdb_id}`, { language: 'en-US' }),
+      tmdb(`/${mediaType}/${link.tmdb_id}`, { language: 'th-TH' }),
+    ]);
+    const enValue = en.status === 'fulfilled' ? en.value : null;
+    const thValue = th.status === 'fulfilled' ? th.value : null;
+    if (!enValue && !thValue) return null;
+    return mergeMovie(enValue, thValue, mediaType, genreMaps.en, genreMaps.th, linkMap);
+  }));
+
+  const movies = uniqueMovies(movieResults.flatMap((result) => (result.status === 'fulfilled' && result.value ? [result.value] : [])))
+    .filter((movie: any) => Number(movie.rating) >= 8)
+    .sort((a: any, b: any) => Number(b.rating) - Number(a.rating));
+
+  return { title: definition.title, subtitle: definition.subtitle, movies, slug: definition.slug, autoplay: false, loadedPages: 1, hasMore: false };
+}
+
 async function fetchRow(definition: CategoryDefinition, genreMaps: { en: Record<number, string>; th: Record<number, string> }, defaultPages: number, linkMap: Map<string, MovieLink>) {
+  if (definition.slug === WATCH_READY_SLUG || definition.path === WATCH_READY_PATH) {
+    return fetchWatchReadyRow(definition, genreMaps, linkMap);
+  }
+
   const pages = Math.min(Number(definition.pages || defaultPages), defaultPages);
   let totalPages = pages;
   const pageResults = await Promise.allSettled(Array.from({ length: pages }, async (_, index) => {
