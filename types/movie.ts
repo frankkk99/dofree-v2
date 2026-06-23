@@ -34,4 +34,6 @@ export type MovieRowData = {
   movies: Movie[];
   slug?: string;
   autoplay?: boolean;
+  loadedPages?: number;
+  hasMore?: boolean;
 };
