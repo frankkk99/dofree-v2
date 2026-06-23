@@ -84,63 +84,68 @@ export default function AdminDashboardPage() {
   const [recentLinks, setRecentLinks] = useState<MovieLink[]>([]);
   const [recentReports, setRecentReports] = useState<LinkReport[]>([]);
 
-  const loadDashboard = async () => {
-    if (!supabase) return;
-    setLoading(true);
-
-    const [linksRes, reportsRes, categoriesRes, sectionsRes] = await Promise.all([
-      supabase
-        .from('admin_movie_links')
-        .select('id, tmdb_id, media_type, title, title_th, watch_url, provider, is_active, updated_at')
-        .order('updated_at', { ascending: false }),
-      supabase
-        .from('link_reports')
-        .select('id, tmdb_id, media_type, movie_title, reason, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(8),
-      supabase.from('admin_categories').select('id, enabled'),
-      supabase.from('admin_sections').select('key, enabled'),
-    ]);
-
-    const links = (linksRes.data || []) as MovieLink[];
-    const reports = (reportsRes.data || []) as LinkReport[];
-    const categories = categoriesRes.data || [];
-    const sections = sectionsRes.data || [];
-
-    setSummary({
-      totalLinks: links.length,
-      activeLinks: links.filter((item) => item.is_active).length,
-      draftLinks: links.filter((item) => !item.is_active).length,
-      watchReady: links.filter((item) => item.is_active && item.watch_url).length,
-      categoriesEnabled: categories.filter((item: any) => item.enabled).length,
-      sectionsEnabled: sections.filter((item: any) => item.enabled).length,
-      pendingReports: reports.filter((item) => (item.status || 'pending') === 'pending').length,
-    });
-
-    setRecentLinks(links.slice(0, 8));
-    setRecentReports(reports);
-    setLoading(false);
-  };
-
   useEffect(() => {
     if (!supabase) {
       setLoading(false);
       return;
     }
 
+    const client = supabase;
+
+    async function loadDashboard() {
+      setLoading(true);
+
+      const [linksRes, reportsRes, categoriesRes, sectionsRes] = await Promise.all([
+        client
+          .from('admin_movie_links')
+          .select('id, tmdb_id, media_type, title, title_th, watch_url, provider, is_active, updated_at')
+          .order('updated_at', { ascending: false }),
+        client
+          .from('link_reports')
+          .select('id, tmdb_id, media_type, movie_title, reason, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(8),
+        client.from('admin_categories').select('id, enabled'),
+        client.from('admin_sections').select('key, enabled'),
+      ]);
+
+      const links = (linksRes.data || []) as MovieLink[];
+      const reports = (reportsRes.data || []) as LinkReport[];
+      const categories = categoriesRes.data || [];
+      const sections = sectionsRes.data || [];
+
+      setSummary({
+        totalLinks: links.length,
+        activeLinks: links.filter((item) => item.is_active).length,
+        draftLinks: links.filter((item) => !item.is_active).length,
+        watchReady: links.filter((item) => item.is_active && item.watch_url).length,
+        categoriesEnabled: categories.filter((item: { enabled?: boolean | null }) => Boolean(item.enabled)).length,
+        sectionsEnabled: sections.filter((item: { enabled?: boolean | null }) => Boolean(item.enabled)).length,
+        pendingReports: reports.filter((item) => (item.status || 'pending') === 'pending').length,
+      });
+
+      setRecentLinks(links.slice(0, 8));
+      setRecentReports(reports);
+      setLoading(false);
+    }
+
     async function init() {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       const user = data.session?.user;
       setSessionEmail(user?.email || null);
+
       if (user) {
-        const profile = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const profile = await client.from('profiles').select('role').eq('id', user.id).single();
         setIsAdmin(profile.data?.role === 'admin');
+      } else {
+        setIsAdmin(false);
       }
+
       await loadDashboard();
     }
 
     init();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => init());
+    const { data: listener } = client.auth.onAuthStateChange(() => init());
     return () => listener.subscription.unsubscribe();
   }, [supabase]);
 
