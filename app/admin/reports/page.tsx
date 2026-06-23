@@ -31,8 +31,10 @@ export default function AdminReportsPage() {
   const [message, setMessage] = useState('');
 
   async function loadReports() {
-    if (!supabase) return;
-    const { data, error } = await supabase
+    const client = supabase;
+    if (!client) return;
+
+    const { data, error } = await client
       .from('link_reports')
       .select('*')
       .order('created_at', { ascending: false })
@@ -48,14 +50,16 @@ export default function AdminReportsPage() {
       return;
     }
 
+    const client = supabase;
+
     async function init() {
       setLoading(true);
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       const user = data.session?.user;
       setEmail(user?.email || null);
 
       if (user) {
-        const profile = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const profile = await client.from('profiles').select('role').eq('id', user.id).single();
         const admin = profile.data?.role === 'admin';
         setIsAdmin(admin);
         if (admin) await loadReports();
@@ -67,8 +71,10 @@ export default function AdminReportsPage() {
   }, [supabase]);
 
   async function updateStatus(report: LinkReport, status: LinkReport['status']) {
-    if (!supabase) return;
-    const { error } = await supabase
+    const client = supabase;
+    if (!client) return;
+
+    const { error } = await client
       .from('link_reports')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', report.id);
