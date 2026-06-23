@@ -1,10 +1,10 @@
-import { ExperienceShellThaiCategoriesRows } from '@/components/ExperienceShellThaiCategoriesRows';
+import { ExperienceShellAllMoviesRows } from '@/components/ExperienceShellAllMoviesRows';
 import { MouseDragCarouselEnhancer } from '@/components/MouseDragCarouselEnhancer';
 
 export default function HomePage() {
   return (
     <main>
-      <ExperienceShellThaiCategoriesRows />
+      <ExperienceShellAllMoviesRows />
       <MouseDragCarouselEnhancer />
     </main>
   );
