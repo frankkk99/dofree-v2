@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { CastMember, Movie, MovieRowData } from '@/types/movie';
 import { featuredMovie as fallbackFeatured, movieRows as fallbackRows, movies as fallbackMovies } from '@/lib/movies';
 
@@ -27,7 +27,7 @@ async function tmdb<T>(path: string, params: Record<string, string | number> = {
   const search = new URLSearchParams({ path });
   Object.entries(params).forEach(([key, value]) => search.set(key, String(value)));
   const response = await fetch(`/api/tmdb?${search.toString()}`);
-  if (!response.ok) throw new Error(`TMDB request failed: ${path}`);
+  if (!response.ok) throw new Error(`Request failed: ${path}`);
   return (await response.json()) as T;
 }
 
@@ -87,12 +87,12 @@ function Header({ userName, favoriteCount, onLogin, onPremium, onLogout, onNotif
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 md:h-20 md:px-8">
         <div>
           <p className="text-lg font-black tracking-tight text-red-500 md:text-2xl">DOFree By Frank</p>
-          <p className="hidden text-xs text-white/40 sm:block">Movie discovery bilingual portfolio</p>
+          <p className="hidden text-xs text-white/40 sm:block">รวมหนังและซีรีส์ พร้อมข้อมูลไทย / อังกฤษ</p>
         </div>
         <nav className="hidden items-center gap-6 text-sm font-medium text-white/60 md:flex">
-          <a href="#movies" className="hover:text-white">Movies</a>
-          <a href="#categories" className="hover:text-white">Categories</a>
-          <a href="#portfolio" className="hover:text-white">Portfolio</a>
+          <a href="#movies" className="hover:text-white">หนัง</a>
+          <a href="#categories" className="hover:text-white">หมวดหมู่</a>
+          <a href="#portfolio" className="hover:text-white">ผลงาน</a>
         </nav>
         <div className="flex shrink-0 items-center gap-2">
           <button onClick={onNotify} className="hidden h-10 w-10 rounded-full border border-white/10 bg-white/10 sm:inline-flex sm:items-center sm:justify-center">🔔</button>
@@ -182,38 +182,77 @@ function MovieCard({ movie, onSelect, onFavorite, isFavorite, compact = false }:
 
 function AutoNowPlayingRow({ row, favorites, onSelect, onFavorite, onShowAll }: { row: MovieRowData; favorites: string[]; onSelect: (movie: Movie) => void; onFavorite: (movie: Movie) => void; onShowAll: (row: MovieRowData) => void }) {
   const railRef = useRef<HTMLDivElement | null>(null);
+  const resumeTimer = useRef<number | null>(null);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startScroll = useRef(0);
   const [paused, setPaused] = useState(false);
   const preview = row.movies.slice(0, 40);
 
+  const resumeSoon = () => {
+    if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
+    resumeTimer.current = window.setTimeout(() => setPaused(false), 1400);
+  };
+
   useEffect(() => {
-    if (paused) return;
+    const rail = railRef.current;
+    if (!rail || paused) return;
+    let frame = 0;
+    const tick = () => {
+      const maxScroll = rail.scrollWidth - rail.clientWidth;
+      if (maxScroll > 0) {
+        if (rail.scrollLeft >= maxScroll - 2) rail.scrollLeft = 0;
+        else rail.scrollLeft += 0.65;
+      }
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [paused, row.movies.length]);
+
+  useEffect(() => () => {
+    if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
+  }, []);
+
+  const beginDrag = (event: any) => {
     const rail = railRef.current;
     if (!rail) return;
-    const timer = window.setInterval(() => {
-      const maxScroll = rail.scrollWidth - rail.clientWidth;
-      if (maxScroll <= 0) return;
-      if (rail.scrollLeft >= maxScroll - 3) {
-        rail.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        rail.scrollBy({ left: 1.4, behavior: 'auto' });
-      }
-    }, 20);
-    return () => window.clearInterval(timer);
-  }, [paused, row.movies.length]);
+    dragging.current = true;
+    setPaused(true);
+    startX.current = event.clientX;
+    startScroll.current = rail.scrollLeft;
+    rail.setPointerCapture?.(event.pointerId);
+  };
+
+  const drag = (event: any) => {
+    const rail = railRef.current;
+    if (!rail || !dragging.current) return;
+    rail.scrollLeft = startScroll.current - (event.clientX - startX.current);
+  };
+
+  const endDrag = (event?: any) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const rail = railRef.current;
+    if (rail && event?.pointerId) rail.releasePointerCapture?.(event.pointerId);
+    resumeSoon();
+  };
 
   const nudge = (direction: 'left' | 'right') => {
     const rail = railRef.current;
     if (!rail) return;
-    rail.scrollBy({ left: direction === 'right' ? rail.clientWidth * 0.8 : -rail.clientWidth * 0.8, behavior: 'smooth' });
+    setPaused(true);
+    rail.scrollBy({ left: direction === 'right' ? rail.clientWidth * 0.85 : -rail.clientWidth * 0.85, behavior: 'smooth' });
+    resumeSoon();
   };
 
   return (
     <section id="movies" className="mx-auto max-w-7xl px-3 py-8 md:px-8">
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <div className="inline-flex rounded-full border border-red-400/25 bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-red-200">Auto carousel</div>
+          <div className="inline-flex rounded-full border border-red-400/25 bg-red-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-red-200">กำลังฉาย</div>
           <h2 className="mt-2 text-xl font-black text-white md:text-3xl">{row.title}</h2>
-          <p className="mt-1 text-sm text-white/45">{row.subtitle} • {row.movies.length} เรื่อง • แตะ/ลากเพื่อเลื่อนเองได้</p>
+          <p className="mt-1 text-sm text-white/45">{row.subtitle} • {row.movies.length} เรื่อง</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => nudge('left')} className="hidden h-9 w-9 rounded-full bg-white/10 text-white hover:bg-white/20 md:block">‹</button>
@@ -223,14 +262,12 @@ function AutoNowPlayingRow({ row, favorites, onSelect, onFavorite, onShowAll }: 
       </div>
       <div
         ref={railRef}
-        onPointerDown={() => setPaused(true)}
-        onPointerUp={() => window.setTimeout(() => setPaused(false), 1200)}
-        onPointerCancel={() => setPaused(false)}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onTouchStart={() => setPaused(true)}
-        onTouchEnd={() => window.setTimeout(() => setPaused(false), 1200)}
-        className="no-scrollbar flex snap-x gap-3 overflow-x-auto scroll-smooth pb-3"
+        onPointerDown={beginDrag}
+        onPointerMove={drag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={endDrag}
+        className="no-scrollbar flex cursor-grab touch-pan-x select-none snap-x gap-3 overflow-x-auto overscroll-x-contain scroll-smooth pb-3 active:cursor-grabbing"
       >
         {preview.map((movie) => (
           <div key={`now-playing-${keyOf(movie)}`} className="w-[43vw] shrink-0 snap-start sm:w-[28vw] md:w-[190px] lg:w-[205px]">
@@ -267,7 +304,7 @@ function CategoryModal({ row, favorites, onClose, onSelect, onFavorite }: { row:
     <div className="fixed inset-0 z-[78] bg-black/90 p-3 backdrop-blur-md md:p-6">
       <div className="mx-auto flex h-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0d0d0d]">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5 md:p-7">
-          <div><p className="text-[11px] font-black uppercase tracking-[0.32em] text-red-400">Browse all / ดูทั้งหมด</p><h2 className="mt-2 text-2xl font-black text-white md:text-4xl">{row.title}</h2><p className="mt-1 text-sm text-white/45">{row.subtitle} • {row.movies.length} titles</p></div>
+          <div><p className="text-[11px] font-black uppercase tracking-[0.32em] text-red-400">ดูทั้งหมด</p><h2 className="mt-2 text-2xl font-black text-white md:text-4xl">{row.title}</h2><p className="mt-1 text-sm text-white/45">{row.subtitle} • {row.movies.length} เรื่อง</p></div>
           <button onClick={onClose} className="rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-red-600">ปิด</button>
         </div>
         <div className="no-scrollbar grid flex-1 grid-cols-4 gap-2 overflow-y-auto p-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8">
@@ -293,13 +330,13 @@ function MovieModal({ movie, loading, favorites, recommendations, onClose, onPla
         </div>
         <div className="space-y-7 px-5 pb-6 md:px-8 md:pb-8">
           <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 md:p-6">
-            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">1. Summary / สรุปหนัง</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">สรุปหนัง</p>
             <p className="mt-3 text-sm leading-7 text-white/72">{movie.overview}</p>
-            <p className="mt-3 text-sm leading-7 text-red-50/65">{movie.thaiOverview || 'ยังไม่มีเรื่องย่อภาษาไทยจาก TMDB'}</p>
+            <p className="mt-3 text-sm leading-7 text-red-50/65">{movie.thaiOverview || 'ยังไม่มีเรื่องย่อภาษาไทย'}</p>
           </section>
 
           <section>
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">2. Teaser / Trailer</p>
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">Teaser / Trailer</p>
             <div className="aspect-video overflow-hidden rounded-3xl border border-white/10 bg-black">
               {teaserEmbed ? <iframe src={teaserEmbed} allow="autoplay; encrypted-media" allowFullScreen className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-sm text-white/45">ไม่พบ Teaser / Trailer</div>}
             </div>
@@ -307,7 +344,7 @@ function MovieModal({ movie, loading, favorites, recommendations, onClose, onPla
 
           <section className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">3. Title / ข้อมูลเรื่องจริง</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">ข้อมูลเรื่อง</p>
               <h2 className="mt-3 text-3xl font-black text-white md:text-5xl">{movie.title}</h2>
               <p className="mt-2 text-lg font-bold text-red-100/70">{movie.thaiTitle || 'ยังไม่มีชื่อไทย'}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-white/65"><span className="rounded-full bg-yellow-400/15 px-3 py-1.5 text-yellow-200">★ {movie.rating}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{movie.year}</span>{movie.runtime ? <span className="rounded-full bg-white/10 px-3 py-1.5">{movie.runtime}</span> : null}</div>
@@ -316,9 +353,9 @@ function MovieModal({ movie, loading, favorites, recommendations, onClose, onPla
             <div className="flex flex-wrap gap-2"><button onClick={() => onPlay(movie)} className="rounded-xl bg-white px-5 py-3 text-sm font-black text-black">▶ รับชม</button><a href={`/player/${movie.mediaType}/${movie.id}`} className="rounded-xl border border-red-400/35 bg-red-600/20 px-5 py-3 text-sm font-black text-white hover:bg-red-600">เปิด Player</a><button onClick={() => onFavorite(movie)} className={`rounded-xl px-5 py-3 text-sm font-black ${favorite ? 'bg-red-600 text-white' : 'bg-white/10 text-white'}`}>♥ {favorite ? 'เพิ่มแล้ว' : 'รายการโปรด'}</button></div>
           </section>
 
-          {movie.cast?.length ? <section><p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">4. Cast / นักแสดง</p><div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">{movie.cast.map((person) => <button key={`${person.id}-${person.character}`} onClick={() => onCastSearch(person.name)} className="text-left"><div className="aspect-[2/3] overflow-hidden rounded-xl bg-white/10">{person.profile ? <img src={person.profile} alt={person.name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : null}</div><p className="mt-2 line-clamp-1 text-[11px] font-bold text-white">{person.name}</p><p className="line-clamp-1 text-[10px] text-white/40">{person.character}</p></button>)}</div></section> : null}
+          {movie.cast?.length ? <section><p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">นักแสดง</p><div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">{movie.cast.map((person) => <button key={`${person.id}-${person.character}`} onClick={() => onCastSearch(person.name)} className="text-left"><div className="aspect-[2/3] overflow-hidden rounded-xl bg-white/10">{person.profile ? <img src={person.profile} alt={person.name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : null}</div><p className="mt-2 line-clamp-1 text-[11px] font-bold text-white">{person.name}</p><p className="line-clamp-1 text-[10px] text-white/40">{person.character}</p></button>)}</div></section> : null}
 
-          {recommendations.length ? <section><p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">5. Recommended / หนังแนะนำ</p><div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">{recommendations.map((item) => <MovieCard key={`rec-${keyOf(item)}`} movie={item} onSelect={onSelectRecommended} onFavorite={onFavorite} isFavorite={favorites.includes(keyOf(item))} compact />)}</div></section> : null}
+          {recommendations.length ? <section><p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300/60">หนังแนะนำ</p><div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">{recommendations.map((item) => <MovieCard key={`rec-${keyOf(item)}`} movie={item} onSelect={onSelectRecommended} onFavorite={onFavorite} isFavorite={favorites.includes(keyOf(item))} compact />)}</div></section> : null}
         </div>
       </div>
     </div>
@@ -333,13 +370,13 @@ function PlayerOverlay({ movie, onClose }: { movie: Movie | null; onClose: () =>
     <div className="fixed inset-0 z-[90] bg-black/92 p-4 backdrop-blur-lg">
       <div className="mx-auto flex h-full max-w-6xl flex-col">
         <div className="mb-3 flex items-center justify-between"><div><p className="text-sm font-black text-white">{movie.title}</p><p className="text-xs text-white/45">{movie.thaiTitle || 'ยังไม่มีชื่อไทย'}</p></div><button onClick={onClose} className="rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-red-600">ปิด</button></div>
-        <div className="relative flex-1 overflow-hidden rounded-3xl border border-white/10 bg-black">{!adDone ? <div className="flex h-full flex-col items-center justify-center p-8 text-center"><p className="text-xs font-black uppercase tracking-[0.35em] text-red-400">Sponsor Preview</p><h2 className="mt-4 text-3xl font-black text-white">โฆษณาตัวอย่างก่อนรับชม</h2><p className="mt-3 max-w-lg text-sm text-white/50">จำลอง workflow โฆษณาของเว็บเดิม ก่อนเข้าสู่ player จริง</p><button onClick={() => setAdDone(true)} className="mt-6 rounded-xl bg-white px-6 py-3 text-sm font-black text-black">ข้ามโฆษณา</button></div> : embed ? <iframe src={embed} allow="autoplay; encrypted-media" allowFullScreen className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-white/45">ไม่พบ Trailer</div>}</div>
+        <div className="relative flex-1 overflow-hidden rounded-3xl border border-white/10 bg-black">{!adDone ? <div className="flex h-full flex-col items-center justify-center p-8 text-center"><p className="text-xs font-black uppercase tracking-[0.35em] text-red-400">ช่วงพักสั้น ๆ</p><h2 className="mt-4 text-3xl font-black text-white">โฆษณาก่อนรับชม</h2><p className="mt-3 max-w-lg text-sm text-white/50">กดข้ามเพื่อเข้าสู่ตัวอย่างหนัง</p><button onClick={() => setAdDone(true)} className="mt-6 rounded-xl bg-white px-6 py-3 text-sm font-black text-black">ข้ามโฆษณา</button></div> : embed ? <iframe src={embed} allow="autoplay; encrypted-media" allowFullScreen className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-white/45">ไม่พบ Trailer</div>}</div>
       </div>
     </div>
   );
 }
 
-function MiniModal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+function MiniModal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4"><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#101010] p-6"><div className="mb-4 flex items-center justify-between"><h3 className="text-xl font-black text-white">{title}</h3><button onClick={onClose} className="rounded-full bg-white/10 px-3 py-1 text-sm font-black">×</button></div>{children}</div></div>;
 }
 
@@ -350,7 +387,7 @@ export function ExperienceShellBilingualV4() {
   const [featured, setFeatured] = useState<Movie>(fallbackFeatured);
   const [allMovies, setAllMovies] = useState<Movie[]>(fallbackMovies);
   const [genreOptions, setGenreOptions] = useState(['All', 'Trending', 'Popular', 'Top Rated', 'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Drama', 'Family', 'Fantasy', 'Horror', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller']);
-  const [feedStatus, setFeedStatus] = useState('กำลังโหลด TMDB 2 ภาษา...');
+  const [feedStatus, setFeedStatus] = useState('กำลังโหลดข้อมูลหนังล่าสุด...');
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [categoryRow, setCategoryRow] = useState<MovieRowData | null>(null);
   const [playerMovie, setPlayerMovie] = useState<Movie | null>(null);
@@ -372,20 +409,20 @@ export function ExperienceShellBilingualV4() {
       try {
         const response = await fetch('/api/tmdb/home?pages=3', { cache: 'no-store' });
         const data = (await response.json()) as HomeFeed;
-        if (!response.ok || !data.rows?.length) throw new Error(data.error || 'TMDB feed returned no rows');
+        if (!response.ok || !data.rows?.length) throw new Error(data.error || 'Feed returned no rows');
         const merged = uniqueMovies(data.rows.flatMap((row) => row.movies));
         if (!mounted) return;
         setRows(data.rows);
         setAllMovies(merged);
         setFeatured(data.featured || merged[0] || fallbackFeatured);
         setGenreOptions(data.genreOptions?.length ? data.genreOptions : genreOptions);
-        setFeedStatus(`TMDB Live • ${data.movieCount || merged.length} เรื่อง • ${data.rowCount || data.rows.length} หมวด • TH/EN`);
-      } catch (error) {
+        setFeedStatus(`อัปเดตล่าสุด • ${data.movieCount || merged.length} เรื่อง • ${data.rowCount || data.rows.length} หมวด`);
+      } catch {
         if (!mounted) return;
         setRows(fallbackRows);
         setAllMovies(fallbackMovies);
         setFeatured(fallbackFeatured);
-        setFeedStatus(`Fallback mode: ${error instanceof Error ? error.message : 'TMDB feed failed'} — ตรวจ ENV TMDB ใน Vercel`);
+        setFeedStatus('กำลังแสดงชุดตัวอย่าง • ข้อมูลหนังจริงกำลังอัปเดต');
       }
     }
     loadHome();
@@ -397,7 +434,7 @@ export function ExperienceShellBilingualV4() {
     if (query.trim().length >= 2) {
       const q = query.toLowerCase();
       const results = allMovies.filter((movie) => [movie.title, movie.thaiTitle, movie.overview, movie.thaiOverview, ...(movie.genres || []), ...(movie.thaiGenres || [])].filter(Boolean).some((value) => String(value).toLowerCase().includes(q)));
-      sourceRows = [{ title: `Search: ${query}`, subtitle: 'ค้นหาจากหนังที่โหลดมาแล้ว', movies: results }];
+      sourceRows = [{ title: `ผลการค้นหา: ${query}`, subtitle: 'รายการที่ตรงกับคำค้นหา', movies: results }];
     }
     if (activeGenre !== 'All') {
       sourceRows = sourceRows.map((row) => ({ ...row, movies: row.movies.filter((movie) => movie.genres.includes(activeGenre) || movie.thaiGenres?.includes(activeGenre)) })).filter((row) => row.movies.length);
@@ -443,7 +480,7 @@ export function ExperienceShellBilingualV4() {
     setSelectedMovie(null);
   };
 
-  const loginDemo = () => {
+  const login = () => {
     const name = 'Frank';
     localStorage.setItem(`${storagePrefix}:user`, name);
     setUserName(name);
@@ -470,9 +507,9 @@ export function ExperienceShellBilingualV4() {
       <MovieModal movie={selectedMovie} loading={detailLoading} favorites={favorites} recommendations={recommendations} onClose={() => setSelectedMovie(null)} onPlay={playMovie} onFavorite={toggleFavorite} onGenre={jumpGenre} onCastSearch={searchCast} onSelectRecommended={selectMovie} />
       <PlayerOverlay movie={playerMovie} onClose={() => setPlayerMovie(null)} />
 
-      {loginOpen ? <MiniModal title="เข้าสู่ระบบ Demo" onClose={() => setLoginOpen(false)}><p className="text-sm text-white/55">ขั้นต่อไปจะเชื่อม Supabase Auth จริง</p><button onClick={loginDemo} className="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white">เข้าสู่ระบบเป็น Frank</button></MiniModal> : null}
-      {premiumOpen ? <MiniModal title="Premium Demo" onClose={() => setPremiumOpen(false)}><p className="text-sm leading-6 text-white/55">เตรียมเชื่อม Supabase memberships สำหรับสถานะ Premium, ประวัติการชำระเงิน และสิทธิ์การดู</p></MiniModal> : null}
-      {notifyOpen ? <MiniModal title="Notifications" onClose={() => setNotifyOpen(false)}><p className="text-sm leading-6 text-white/55">เตรียมเชื่อมตาราง notifications สำหรับข่าวหนังใหม่และสถานะสมาชิก</p></MiniModal> : null}
+      {loginOpen ? <MiniModal title="เข้าสู่ระบบ" onClose={() => setLoginOpen(false)}><p className="text-sm text-white/55">เข้าสู่ระบบเพื่อเก็บรายการโปรดและประวัติการรับชม</p><button onClick={login} className="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white">เข้าสู่ระบบ</button></MiniModal> : null}
+      {premiumOpen ? <MiniModal title="Premium" onClose={() => setPremiumOpen(false)}><p className="text-sm leading-6 text-white/55">ปลดล็อกประสบการณ์รับชมที่ครบขึ้น พร้อมรายการโปรดและประวัติการรับชมในบัญชีของคุณ</p></MiniModal> : null}
+      {notifyOpen ? <MiniModal title="แจ้งเตือน" onClose={() => setNotifyOpen(false)}><p className="text-sm leading-6 text-white/55">ติดตามหนังใหม่ ซีรีส์ใหม่ และรายการที่คุณสนใจ</p></MiniModal> : null}
     </main>
   );
 }
