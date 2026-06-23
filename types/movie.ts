@@ -22,6 +22,8 @@ export type Movie = {
   backdrop: string;
   trailerKey?: string;
   trailerUrl?: string;
+  watchUrl?: string;
+  provider?: string;
   runtime?: string;
   cast?: CastMember[];
 };
