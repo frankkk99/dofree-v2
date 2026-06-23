@@ -1,5 +1,5 @@
-import { ExperienceShellBilingualV4 } from '@/components/ExperienceShellBilingualV4';
+import { ExperienceShellThaiCategories } from '@/components/ExperienceShellThaiCategories';
 
 export default function HomePage() {
-  return <ExperienceShellBilingualV4 />;
+  return <ExperienceShellThaiCategories />;
 }
