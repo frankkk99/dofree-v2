@@ -3,23 +3,45 @@ import { NextRequest, NextResponse } from 'next/server';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const imageBase = 'https://image.tmdb.org/t/p';
 
+const thaiFallbackGenres = [
+  'ทั้งหมด',
+  'แอ็กชัน',
+  'ผจญภัย',
+  'แอนิเมชัน',
+  'ตลก',
+  'อาชญากรรม',
+  'สารคดี',
+  'ดราม่า',
+  'ครอบครัว',
+  'แฟนตาซี',
+  'ประวัติศาสตร์',
+  'สยองขวัญ',
+  'เพลง',
+  'ลึกลับ',
+  'โรแมนติก',
+  'ไซไฟ',
+  'ระทึกขวัญ',
+  'สงคราม',
+  'ตะวันตก',
+];
+
 const rowDefinitions = [
-  { title: 'กำลังฉาย', subtitle: 'Now Playing / หนังที่กำลังฉายในโรง', path: '/movie/now_playing', mediaType: 'movie', pages: 4 },
-  { title: 'กำลังจะเข้าฉาย', subtitle: 'Upcoming / เร็ว ๆ นี้', path: '/movie/upcoming', mediaType: 'movie', pages: 3 },
-  { title: 'ยอดนิยมตอนนี้', subtitle: 'Popular / ยอดนิยม', path: '/movie/popular', mediaType: 'movie', pages: 3 },
-  { title: 'กำลังมาแรง', subtitle: 'Trending / กำลังมาแรง', path: '/trending/movie/week', mediaType: 'movie', pages: 3 },
-  { title: 'คะแนนสูง', subtitle: 'Top Rated / คะแนนสูง', path: '/movie/top_rated', mediaType: 'movie', pages: 3 },
-  { title: 'แอ็กชัน / ผจญภัย', subtitle: 'Action / Adventure', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '28,12', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'ครอบครัว / แอนิเมชัน', subtitle: 'Family / Animation', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '16,10751', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'ตลก / Feel Good', subtitle: 'Comedy / Easy watching', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '35', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'ระทึกขวัญ / สยองขวัญ', subtitle: 'Thriller / Horror', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '27,53', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'ไซไฟ / แฟนตาซี', subtitle: 'Sci-Fi / Fantasy', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '878,14', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'โรแมนติก / ดราม่า', subtitle: 'Romance / Drama', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '10749,18', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'อาชญากรรม / ลึกลับ', subtitle: 'Crime / Mystery', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '80,9648', sort_by: 'popularity.desc' }, pages: 3 },
-  { title: 'สารคดี', subtitle: 'Documentary / สารคดี', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '99', sort_by: 'popularity.desc' }, pages: 2 },
-  { title: 'ซีรีส์กำลังมาแรง', subtitle: 'Trending TV / ซีรีส์มาแรง', path: '/trending/tv/week', mediaType: 'tv', pages: 3 },
-  { title: 'ซีรีส์ยอดนิยม', subtitle: 'Popular TV / ซีรีส์ยอดนิยม', path: '/tv/popular', mediaType: 'tv', pages: 3 },
-  { title: 'ซีรีส์คะแนนสูง', subtitle: 'Top Rated TV / ซีรีส์คะแนนสูง', path: '/tv/top_rated', mediaType: 'tv', pages: 3 },
+  { title: 'กำลังฉาย', subtitle: 'หนังที่กำลังฉายในโรง', path: '/movie/now_playing', mediaType: 'movie', pages: 4 },
+  { title: 'กำลังจะเข้าฉาย', subtitle: 'หนังใหม่ที่กำลังจะมา', path: '/movie/upcoming', mediaType: 'movie', pages: 3 },
+  { title: 'ยอดนิยมตอนนี้', subtitle: 'เรื่องที่คนดูสนใจมากที่สุด', path: '/movie/popular', mediaType: 'movie', pages: 3 },
+  { title: 'กำลังมาแรง', subtitle: 'หนังที่ถูกพูดถึงในช่วงนี้', path: '/trending/movie/week', mediaType: 'movie', pages: 3 },
+  { title: 'คะแนนสูง', subtitle: 'หนังที่ได้รับคะแนนดี', path: '/movie/top_rated', mediaType: 'movie', pages: 3 },
+  { title: 'แอ็กชัน / ผจญภัย', subtitle: 'หนังพลังสูง เดินเรื่องไว', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '28,12', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ครอบครัว / แอนิเมชัน', subtitle: 'ดูง่าย เหมาะกับทุกวัย', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '16,10751', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ตลก / ดูสบาย', subtitle: 'เบาสมอง ดูเพลิน', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '35', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ระทึกขวัญ / สยองขวัญ', subtitle: 'ลุ้น เข้มข้น และน่ากลัว', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '27,53', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'ไซไฟ / แฟนตาซี', subtitle: 'โลกอนาคต เวทมนตร์ และจินตนาการ', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '878,14', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'โรแมนติก / ดราม่า', subtitle: 'ความรัก ความสัมพันธ์ และชีวิต', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '10749,18', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'อาชญากรรม / ลึกลับ', subtitle: 'คดี ปริศนา และการสืบสวน', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '80,9648', sort_by: 'popularity.desc' }, pages: 3 },
+  { title: 'สารคดี', subtitle: 'เรื่องจริงและสาระน่าติดตาม', path: '/discover/movie', mediaType: 'movie', params: { with_genres: '99', sort_by: 'popularity.desc' }, pages: 2 },
+  { title: 'ซีรีส์กำลังมาแรง', subtitle: 'ซีรีส์ที่ถูกพูดถึงในช่วงนี้', path: '/trending/tv/week', mediaType: 'tv', pages: 3 },
+  { title: 'ซีรีส์ยอดนิยม', subtitle: 'ซีรีส์ที่คนดูสนใจมากที่สุด', path: '/tv/popular', mediaType: 'tv', pages: 3 },
+  { title: 'ซีรีส์คะแนนสูง', subtitle: 'ซีรีส์ที่ได้รับคะแนนดี', path: '/tv/top_rated', mediaType: 'tv', pages: 3 },
 ];
 
 const readEnv = (...names: string[]) =>
@@ -111,7 +133,7 @@ function mergeMovie(en: any, th: any, fallbackType: 'movie' | 'tv', enGenres: Re
     thaiTitle: titleOf(th || {}) || undefined,
     year: yearOf(source),
     rating: ratingOf(source),
-    genres: genres.length ? genres : [mediaType === 'tv' ? 'TV Series' : 'Movie'],
+    genres: genres.length ? genres : [mediaType === 'tv' ? 'ซีรีส์' : 'หนัง'],
     thaiGenres: thaiGenres.length ? thaiGenres : undefined,
     overview: en?.overview || source?.overview || 'No English overview available.',
     thaiOverview: th?.overview || undefined,
@@ -135,10 +157,11 @@ async function getGenreMaps() {
   const toMap = (items: any[]) => Object.fromEntries(items.map((genre) => [genre.id, genre.name]));
   const enList = [...value(movieEn), ...value(tvEn)];
   const thList = [...value(movieTh), ...value(tvTh)];
+  const thaiOptions = thList.length ? thList.map((genre) => genre.name) : thaiFallbackGenres.slice(1);
   return {
     en: toMap(enList),
     th: toMap(thList),
-    options: Array.from(new Set(['All', 'Trending', 'Popular', 'Top Rated', ...enList.map((genre) => genre.name)].filter(Boolean))),
+    options: Array.from(new Set(['ทั้งหมด', ...thaiOptions].filter(Boolean))),
   };
 }
 
