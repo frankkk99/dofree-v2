@@ -32,4 +32,6 @@ export type MovieRowData = {
   title: string;
   subtitle: string;
   movies: Movie[];
+  slug?: string;
+  autoplay?: boolean;
 };
